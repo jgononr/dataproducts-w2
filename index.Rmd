@@ -14,28 +14,28 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE)
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
 ```{r bodtrees_download, cache = TRUE}
-library(dplyr)
-library(leaflet)
-
 df <- read.csv(url("http://opendata-ajuntament.barcelona.cat/resources/bcn/arbrat_viari.csv"))
 dim(df)
 names(df)
 ```
 
-```{r bodtrees_datacleaning}
-df <- select(df, lat = LATITUD_WGS84, lng = LONGITUD_WGS84)
+```{r bodtrees_datacleaning, cache = TRUE}
+library(dplyr)
+df <- select(df, LATITUD_WGS84, LONGITUD_WGS84)
 
 set.seed(12345)
 df <- df[runif(1000,min = 1, max = nrow(df)),]
 ```
 
 ```{r leaflet_bodtrees, cache = TRUE}
+library(leaflet)
+
 df %>% leaflet() %>%
        addTiles() %>%
-       addMarkers(lat = df$lat, lng = df$lng,
+       addMarkers(lat = df$LATITUD_WGS84, lng = df$LONGITUD_WGS84,
                   clusterOptions = markerClusterOptions())
 ```
 
 This project uses the [_Street Trees of the city of Barcelona_](http://opendata-ajuntament.barcelona.cat/data/en/dataset/arbrat-viari) 
-dataset from the [Barcelona Open Data service](http://opendata-ajuntament.barcelona.cat) and is used under the
-[Creative Commons Attribution 4.0 license](https://creativecommons.org/licenses/by/4.0/)
+dataset from the [Barcelona Open Data service](http://opendata-ajuntament.barcelona.cat/en/)
+and is used under the [Creative Commons Attribution 4.0 license](https://creativecommons.org/licenses/by/4.0/)
