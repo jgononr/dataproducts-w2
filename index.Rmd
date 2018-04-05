@@ -1,7 +1,7 @@
 ---
 title: "Week 2 Project"
 author: "Javier González Onrubia"
-date: "5 de abril de 2018"
+date: "Apr. 5th 2018"
 output: html_document
 ---
 
