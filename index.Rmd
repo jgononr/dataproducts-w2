@@ -9,33 +9,85 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE, message = FALSE)
 ```
 
-## R Markdown
+## R Markdown and Leaflet
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+#### Dataset information
+This project uses the [_Street Trees of the city of Barcelona_](http://opendata-ajuntament.barcelona.cat/data/en/dataset/arbrat-viari) 
+dataset from the [Barcelona Open Data service](http://opendata-ajuntament.barcelona.cat/en/)
+and is used under the [Creative Commons Attribution 4.0 license](https://creativecommons.org/licenses/by/4.0/).
+
 
 ```{r bodtrees_download, cache = TRUE}
 df <- read.csv(url("http://opendata-ajuntament.barcelona.cat/resources/bcn/arbrat_viari.csv"))
-dim(df)
 names(df)
 ```
 
-```{r bodtrees_datacleaning, cache = TRUE}
-library(dplyr)
-df <- select(df, LATITUD_WGS84, LONGITUD_WGS84)
+The dataset includes all trees that do not belong to parks or green
+areas and is composed of `r nrow(df)` trees with `r ncol(df)`
+variables each. 
 
+We'll be using the following variables for this project:
+
+* 'LATITUD_WGS84': Latitude in [WGS84 format](https://en.wikipedia.org/wiki/WGS84)
+* 'LONGITUD_WGS84': Longitude in [WGS84 format](https://en.wikipedia.org/wiki/WGS84)
+* 'NOM_CIENTIFIC': Tree's scientific name. This field is used on the
+marker popup and alse to generate the link to the corresponding
+Wikipedia article when clicked.
+* 'ALCADA': A factor indicating the tree's height or _EXEMPLAR_ if
+it's an illustratory tree for the species.
+
+As the total number of trees will generate a too big HTML page, we
+use the `runif()` function to pick 1000 trees to plot.
+
+```{r bodtrees_datacleaning}
+library(dplyr)
+df <- select(df, 
+             LATITUD_WGS84, LONGITUD_WGS84, NOM_CIENTIFIC, ALCADA)
+head(unique(df$NOM_CIENTIFIC))
 set.seed(12345)
 df <- df[runif(1000,min = 1, max = nrow(df)),]
+df$ALCADA <- relevel(df$ALCADA, 
+                     "EXEMPLAR", "GRAN", "MITJANA", "PETITA")
 ```
 
-```{r leaflet_bodtrees, cache = TRUE}
+### Leaflet map
+We use the 'addAwesomeMarkers' function to change color and icon
+of the marker as it provides a very convenient icon library
+instead of downloading it. Please see [the Awesome Markers page on github](https://github.com/lvoogdt/Leaflet.awesome-markers) and 
+[Ion icons](http://ionicons.com/) and 
+
+```{r leaflet_bodtrees}
 library(leaflet)
+
+treesPopup <- paste(df$NOM_CIENTIFIC,
+                    " <a href='http://en.wikipedia.org/wiki/",
+                    df$NOM_CIENTIFIC,"'>[Wikipedia]</a>")
+treecolors <- c("gold", "chartreuse", "seagreen", "darkgreen")
+        
+getTreeColor <- function(heights) {
+    sapply(heights, function(h) {
+        if(is.na(h) | is.null(h)) {"white"}
+        else treecolors[h]
+    })
+}
+
+icons <- awesomeIcons(
+    icon = 'leaf',
+    iconColor = 'black',
+    library = 'ion',
+    markerColor = getTreeColor(df$ALCADA)
+)
 
 df %>% leaflet() %>%
        addTiles() %>%
-       addMarkers(lat = df$LATITUD_WGS84, lng = df$LONGITUD_WGS84,
-                  clusterOptions = markerClusterOptions())
+       addAwesomeMarkers(lat = df$LATITUD_WGS84, 
+                         lng = df$LONGITUD_WGS84,
+                         popup = treesPopup,
+                         icon = icons,
+                         clusterOptions = markerClusterOptions()) %>%
+       addLegend(title = "Tree Height legend",
+                 labels = c("Exemplar", "Tall", "Medium", "Small"),
+                 colors = treecolors)
 ```
 
-This project uses the [_Street Trees of the city of Barcelona_](http://opendata-ajuntament.barcelona.cat/data/en/dataset/arbrat-viari) 
-dataset from the [Barcelona Open Data service](http://opendata-ajuntament.barcelona.cat/en/)
-and is used under the [Creative Commons Attribution 4.0 license](https://creativecommons.org/licenses/by/4.0/)
+
